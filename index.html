@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ATABEY Control Center</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      background: #010b18;
+      color: #00ffff;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .console, .panel, .voice {
+      background: #081c2f;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px #0ff;
+    }
+    input, button, select {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    button {
+      background-color: #0ff;
+      color: #000;
+      cursor: pointer;
+    }
+    iframe {
+      width: 100%;
+      height: 500px;
+      border: none;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>ATABEY Quantum Dashboard</h1>
+
+  <div class="console">
+    <label for="messageBox">Ask ATABEY:</label>
+    <input id="messageBox" type="text" placeholder="Type or speak..." />
+    <button onclick="triggerATABEY()">Send</button>
+    <p id="atabey-response">Awaiting command...</p>
+  </div>
+
+  <div class="voice">
+    <button onclick="startVoice()">🎤 Start Voice</button>
+    <p id="voice-status">Voice inactive</p>
+  </div>
+
+  <div class="panel">
+    <h3>Memory + Emotions</h3>
+    <input type="text" id="ownerKey" placeholder="Owner Key" />
+    <button onclick="submitKey()">Submit Key</button>
+  </div>
+
+  <iframe src="https://atabey.app/dashboard"></iframe>
+
+  <script>
+    async function triggerATABEY() {
+      const message = document.getElementById("messageBox").value;
+      const res = await fetch("https://samitopr.pythonanywhere.com/ai/respond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      });
+      const data = await res.json();
+      document.getElementById("atabey-response").innerText = data.response;
+
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(data.response);
+        utterance.lang = 'es-PR';
+        speechSynthesis.speak(utterance);
+      }
+    }
+
+    function submitKey() {
+      alert("Owner key accepted. Full access granted.");
+    }
+
+    function startVoice() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert("Voice recognition not supported");
+        return;
+      }
+      const recognition = new webkitSpeechRecognition();
+      recognition.lang = "es-PR";
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        document.getElementById("voice-status").innerText = "Listening...";
+      };
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        document.getElementById("messageBox").value = transcript;
+        triggerATABEY();
+      };
+      recognition.onerror = (e) => {
+        document.getElementById("voice-status").innerText = "Voice error.";
+      };
+      recognition.onend = () => {
+        document.getElementById("voice-status").innerText = "Voice ready.";
+      };
+      recognition.start();
+    }
+  </script>
+</body>
+</html>
